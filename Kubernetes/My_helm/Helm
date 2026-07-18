@@ -70,3 +70,35 @@ spec:
 Now that your project matches a legitimate Helm blueprint layout, you can verify it and install it smoothly from your Bastion node.
 First, use tree to make sure your workspace matches this look:
 tree my-nginx-chart
+ 
+(It should neatly show Chart.yaml, values.yaml, and the templates/ subdirectory).
+To run the installation, provide Helm with a custom Release Name (my-web-release) followed by the chart folder path:
+helm install my-web-release ./my-nginx-chart
+
+To see your running Helm release details later, simply run:
+helm list
+
+In Helm, {{ .Release.Name }} is a built-in variable that represents the unique name you give to a specific deployment instance when you run the helm install command.
+It acts as a dynamic prefix or identifier so you can deploy the exact same Helm Chart multiple times to the same cluster without their names colliding
+How it Works in Practice
+Think back to the installation command you use:
+helm install my-web-release ./my-nginx-chart
+In this command, my-web-release becomes the .Release.Name.
+
+ 
+
+Why is this useful?
+It allows for instant environment replication. If you want to deploy a second copy of the exact same Nginx chart for a different developer or purpose, you don't have to change a single line of code inside the chart. You just change the release name at execution:
+helm install staging-app ./my-nginx-chart
+This time, Helm automatically renders the resource name as staging-app-nginx. It keeps your Kubernetes resources perfectly organized and prevents "resource already exists" errors!
+
+---
+.Release.Name, {{ .Release.Namespace }} is another built-in Helm variable. It automatically represents the Kubernetes namespace where the chart is being deployed.
+Instead of hardcoding namespace: default or namespace: k8s-dashboard into your YAML files, you use this variable so the chart adapts dynamically based on your command line input.
+ 
+Helm dynamically injects namespace: dev-environment.
+
+If you don't specify a namespace flag in your command:
+helm install my-web-release ./my-nginx-chart
+Helm will automatically fall back to whatever namespace your current kubectl context is actively set to (usually default).
+
