@@ -1,0 +1,72 @@
+On your Bastion node, create a new folder structure called my-nginx-chart:
+mkdir -p my-nginx-chart/templates
+
+2. Create Chart.yaml
+This file satisfies the metadata requirement that Helm was looking for earlier. Create it at the root of your chart directory:
+my-nginx-chart/Chart.yaml
+apiVersion: v2 
+name: my-nginx-chart 
+description: A reusable Nginx web deployment 
+type: application 
+version: 0.1.0 
+appVersion: "1.25"
+
+3. Create values.yaml
+This file isolates the variables (like replica counts and image tags) so you can change them easily without modifying the core code.
+my-nginx-chart/values.yaml
+replicaCount: 1 
+image: 
+repository: nginx 
+tag: latest 
+pullPolicy: Always 
+service: 
+type: NodePort 
+port: 80 
+targetPort: 80
+
+4. Create the Parameterized Templates
+Now, we will split your original manifest into two clean templates inside the templates/ directory, replacing the hardcoded text fields with Helm variables ({{ ... }}).
+my-nginx-chart/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-nginx
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-nginx
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.service.targetPort }}
+
+The Service Template:
+my-nginx-chart/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ .Release.Name }}-nginx
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: {{ .Values.service.targetPort }}
+
+
+5. Deploy with Helm!
+Now that your project matches a legitimate Helm blueprint layout, you can verify it and install it smoothly from your Bastion node.
+First, use tree to make sure your workspace matches this look:
+tree my-nginx-chart
